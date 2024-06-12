@@ -1,0 +1,28 @@
+.progress-container {
+    width: 300px; /* Adjust width as needed */
+    height: 20px;
+    background-color: #ddd;
+    /* border-radius: 5px; */
+    overflow: hidden;
+  }
+  
+  #progress {
+    width: 100%; /* Full width of container */
+    height: 100%;
+    background-color: #504c4c; /* Progress bar color */
+  }
+  
+  #progress::-webkit-progress-value { /* Chrome, Safari, etc. */
+    background-color: #504c4c;
+  }
+  
+  #progress::-moz-progress-bar { /* Firefox */
+    background-color: #ddd;
+  }
+  
+  #progress-text {
+    display: inline-block;
+    line-height: 20px; /* Match height of container */
+    margin-right: 10px;
+  }
+  
