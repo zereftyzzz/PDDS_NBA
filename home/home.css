@@ -1,0 +1,50 @@
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80%; /* Make container full width */
+  height: 500px; /* Fixed height */
+  margin-top: 20px;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.centered-image {
+  max-height: 100%; /* Ensure the image scales down proportionally */
+  max-width: 100%; /* Ensure the image scales down proportionally */
+}
+
+.progress-container {
+  width: 50%; /* Example width for progress container */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Distribute space between items */
+  margin-top: 20px;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+#progress {
+  flex-grow: 1; /* Make progress bar take up remaining space */
+  width: 84%;
+  height: 20px;
+  background-color: #ddd;
+  border-radius: 5px;
+  margin: 0 10px; /* Add margin between progress bar and text */
+}
+
+#progress::-webkit-progress-value { /* Chrome, Safari, etc. */
+  background-color: #000;
+}
+
+#progress::-moz-progress-bar { /* Firefox */
+  background-color: #000;
+}
+
+#progress-text1, #progress-text2 {
+  line-height: 20px; /* Match height of container */
+}

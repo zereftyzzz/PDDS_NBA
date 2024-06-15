@@ -1,5 +1,6 @@
 <?php
 
+include 'navbar2.php';
 require_once 'autoload.php';
 
 // Connect to the MongoDB client
