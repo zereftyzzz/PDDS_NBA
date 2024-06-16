@@ -243,14 +243,14 @@ $ostatsCollection = $client->pdds_proyek->ostats;
         </div>
       </form>
 
-      <div class="col-2">
+      <!-- <div class="col-2">
         <div class="row">
           <label>File</label>
         </div>
         <div class="row">
-          <button type="button" class="btn btn-dark">★</button>
+          <a href="starmap.php" class="btn btn-dark">★</a>
         </div>
-      </div>
+      </div> -->
 
     </div>
   </div>
@@ -317,14 +317,20 @@ $ostatsCollection = $client->pdds_proyek->ostats;
     <span id="progress-text2"><?= $Lose_percent ?>%</span>
   </div>
 
-  <!-- Display team name -->
-  <div class="container" style="margin-top:40px;width:46%;">
-    <h2 > <?php echo $teamName; ?>, <?php echo isset($_GET['season']) && $_GET['season'] !== '' ? htmlspecialchars($_GET['season'], ENT_QUOTES, 'UTF-8') . ' ' : ''; ?>
+<!-- Display team name -->
+  <div class="container" style="margin-top: 40px; width: 46%;">
+    <h2 style="display: inline-block; margin-right: 20px;">
+      <?php echo $teamName; ?>, <?php echo isset($_GET['season']) && $_GET['season'] !== '' ? htmlspecialchars($_GET['season'], ENT_QUOTES, 'UTF-8') . ' ' : ''; ?>
     </h2>
+    <h4 style="display: inline-block;">
+      ( <?php echo $teamWins === 100 ? 0 : $teamWins; ?>
+      - <?php echo $teamLosses; ?> )
+    </h4>
   </div>
+
 <!-- Reserve -->
   <div class="container" style="margin-top: 20px;width:46%;">
-      <h3>Reserve</h3>
+      <h3 style="margin-bottom:10px;">Reserve</h3>
       <table class="table table-bordered">
           <thead>
               <tr>
