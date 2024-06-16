@@ -1,22 +1,17 @@
 <?php
-
 include 'navbar2.php';
 require_once 'autoload.php';
 
-// Connect to the MongoDB client
 $client = new MongoDB\Client();
 
-// Select the database and collection
 $collection = $client->pdds_proyek->player;
 $teamCollection = $client->pdds_proyek->team;
 
 $tempWin = 0;
 $allStar = 0.0;
 
-// Initialize the filter array
 $filter = [];
 
-// Initialize players and topPlayers arrays
 $players = [];
 $topPlayers = [];
 $averageStats = [
@@ -27,16 +22,12 @@ $averageStats = [
     'pts_per_game' => 0.0,
 ];
 
-// Initialize a flag to indicate whether to fetch data
-$shouldFetchData = false;
+$check = false;
 
-// Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    // Check if any filter is set
     if (!empty($_GET['name']) || !empty($_GET['position']) || !empty($_GET['year'])) {
-        $shouldFetchData = true;
+        $check = true;
 
-        // Apply filters based on input
         if (!empty($_GET['name'])) {
             $filter['player'] = ['$regex' => $_GET['name'], '$options' => 'i'];
         }
@@ -47,26 +38,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
             $filter['season'] = (int)$_GET['year'];
         }
 
-        // Fetch filtered documents from the collection
         $playersCursor = $collection->find($filter);
         $players = $playersCursor->toArray();
 
-        // Check if year filter is set to fetch top 10 players by points per game
         if (!empty($_GET['year'])) {
             $topFilter = [
                 'season' => (int)$_GET['year'],
             ];
 
-            // Fetch top 10 players by points per game for the specified year
             $topPlayersCursor = $collection->find($topFilter, [
                 'sort' => ['pts_per_game' => -1],
                 'limit' => 10
             ]);
 
-            // Convert cursor to array
             $topPlayers = $topPlayersCursor->toArray();
 
-            // Calculate average stats for top 10 players
             $totalPlayers = count($topPlayers);
             foreach ($topPlayers as $player) {
                 $averageStats['trb_per_game'] += (float)$player['trb_per_game'];
@@ -166,7 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
         <button type="submit">Search</button>
     </form>
 
-    <?php if ($shouldFetchData) : ?>
+    <!-- Jika tombol search sudah di klik -->
+    <?php if ($check) : ?>
+
+        <!-- Jika output data player yang ditemukan hanya 1 -->
         <?php if (count($players) === 1) : ?>
             <?php $player = $players[0]; ?>
             <table>
@@ -204,24 +193,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                     $allStar = round((float)($tempWin / 5) * $teamWinPercentage, 2)
                     ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($player['pos'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($player['age'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($player['experience'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($player['season'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><?php echo htmlspecialchars($player['tm'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td class="<?php echo $highlightRebound; ?>"><?php echo htmlspecialchars($player['trb_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td class="<?php echo $highlightAssist; ?>"><?php echo htmlspecialchars($player['ast_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td class="<?php echo $highlightSteal; ?>"><?php echo htmlspecialchars($player['stl_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td class="<?php echo $highlightBlock; ?>"><?php echo htmlspecialchars($player['blk_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td class="<?php echo $highlightPoints; ?>"><?php echo htmlspecialchars($player['pts_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo $player['player']; ?></td>
+                        <td><?php echo $player['pos']; ?></td>
+                        <td><?php echo $player['age']; ?></td>
+                        <td><?php echo $player['experience']; ?></td>
+                        <td><?php echo $player['season']; ?></td>
+                        <td><?php echo $player['tm']; ?></td>
+                        <td class="<?php echo $highlightRebound; ?>"><?php echo $player['trb_per_game']; ?></td>
+                        <td class="<?php echo $highlightAssist; ?>"><?php echo $player['ast_per_game']; ?></td>
+                        <td class="<?php echo $highlightSteal; ?>"><?php echo $player['stl_per_game']; ?></td>
+                        <td class="<?php echo $highlightBlock; ?>"><?php echo $player['blk_per_game']; ?></td>
+                        <td class="<?php echo $highlightPoints; ?>"><?php echo $player['pts_per_game']; ?></td>
                     </tr>
                 </tbody>
             </table>
-            <p><strong>Team:</strong> <?php echo htmlspecialchars($teamName, ENT_QUOTES, 'UTF-8'); ?></p>
-            <p><strong>Team Win:</strong> <?php echo htmlspecialchars($teamWinPercentage, ENT_QUOTES, 'UTF-8'); ?>%</p>
-            <p><strong>All-Star Probability:</strong> <?php echo htmlspecialchars($allStar, ENT_QUOTES, 'UTF-8'); ?>%</p>
-        <?php elseif (!empty($players)) : ?>
+            <p><strong>Team:</strong> <?php echo $teamName; ?></p>
+            <p><strong>Team Win:</strong> <?php echo $teamWinPercentage; ?>%</p>
+            <p><strong>All-Star Probability:</strong> <?php echo $allStar; ?>%</p>
+
+            <!-- Jika output data player yang ditemukan lebih dari 1 -->
+        <?php elseif (count($players) > 1) : ?>
             <table>
                 <thead>
                     <tr>
@@ -241,25 +232,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 <tbody>
                     <?php foreach ($players as $player) : ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['pos'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['age'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['experience'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['season'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['tm'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['trb_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['ast_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['stl_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['blk_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['pts_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo $player['player']; ?></td>
+                            <td><?php echo $player['pos']; ?></td>
+                            <td><?php echo $player['age']; ?></td>
+                            <td><?php echo $player['experience']; ?></td>
+                            <td><?php echo $player['season']; ?></td>
+                            <td><?php echo $player['tm']; ?></td>
+                            <td><?php echo $player['trb_per_game']; ?></td>
+                            <td><?php echo $player['ast_per_game']; ?></td>
+                            <td><?php echo $player['stl_per_game']; ?></td>
+                            <td><?php echo $player['blk_per_game']; ?></td>
+                            <td><?php echo $player['pts_per_game']; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         <?php endif; ?>
 
+        <!-- Jika top player tidak kosong -->
         <?php if (!empty($topPlayers)) : ?>
-            <h2>Top 10 Players by Points per Game in <?php echo htmlspecialchars($_GET['year'], ENT_QUOTES, 'UTF-8'); ?></h2>
+            <h2>Top 10 Players in <?php echo $_GET['year']; ?></h2>
             <table>
                 <thead>
                     <tr>
@@ -279,23 +271,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 <tbody>
                     <?php foreach ($topPlayers as $player) : ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['pos'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['age'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['experience'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['season'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['tm'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['trb_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['ast_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['stl_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['blk_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($player['pts_per_game'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo $player['player']; ?></td>
+                            <td><?php echo $player['pos']; ?></td>
+                            <td><?php echo $player['age']; ?></td>
+                            <td><?php echo $player['experience']; ?></td>
+                            <td><?php echo $player['season']; ?></td>
+                            <td><?php echo $player['tm']; ?></td>
+                            <td><?php echo $player['trb_per_game']; ?></td>
+                            <td><?php echo $player['ast_per_game']; ?></td>
+                            <td><?php echo $player['stl_per_game']; ?></td>
+                            <td><?php echo $player['blk_per_game']; ?></td>
+                            <td><?php echo $player['pts_per_game']; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
 
-            <h2>Top 10 Stats in <?php echo htmlspecialchars($_GET['year'], ENT_QUOTES, 'UTF-8'); ?></h2>
+            <h2>Top 10 Players Stats in <?php echo $_GET['year']; ?></h2>
             <table>
                 <thead>
                     <tr>
@@ -306,29 +298,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
                 <tbody>
                     <tr>
                         <td>Rebound</td>
-                        <td><?php echo htmlspecialchars(number_format($averageStats['trb_per_game'], 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo round($averageStats['trb_per_game'], 2); ?></td>
                     </tr>
                     <tr>
                         <td>Assist</td>
-                        <td><?php echo htmlspecialchars(number_format($averageStats['ast_per_game'], 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo round($averageStats['ast_per_game'], 2); ?></td>
                     </tr>
                     <tr>
                         <td>Steal</td>
-                        <td><?php echo htmlspecialchars(number_format($averageStats['stl_per_game'], 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo round($averageStats['stl_per_game'], 2); ?></td>
                     </tr>
                     <tr>
                         <td>Block</td>
-                        <td><?php echo htmlspecialchars(number_format($averageStats['blk_per_game'], 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo round($averageStats['blk_per_game'], 2); ?></td>
                     </tr>
                     <tr>
                         <td>Points</td>
-                        <td><?php echo htmlspecialchars(number_format($averageStats['pts_per_game'], 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo round($averageStats['pts_per_game'], 2); ?></td>
                     </tr>
                 </tbody>
             </table>
         <?php endif; ?>
+
+        <!-- Jika tombol search belum di klik -->
     <?php else : ?>
-        <p>Please select at least one filter to search for players.</p>
     <?php endif; ?>
 </body>
 

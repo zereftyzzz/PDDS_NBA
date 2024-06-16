@@ -6,45 +6,39 @@ include '../navbar.php';
 $players = [];
 $uploadedFileName = null;
 
-// Handle file upload
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['file'])) {
-    $selectedYear = isset($_POST['selectedYear']) ? (int)$_POST['selectedYear'] : null;
+// Database connection configuration
+$host = 'localhost'; // Change this to your MySQL host
+$dbname = 'pdds_nba'; // Change this to your database name in phpMyAdmin
+$username = 'root'; // Change this to your MySQL username
+$password = ''; // Change this to your MySQL password
 
-    // Validate and process the uploaded file
-    $uploadDir = './uploads/';
-    $uploadFile = $uploadDir . basename($_FILES['file']['name']);
-    $uploadedFileName = basename($_FILES['file']['name']); // Store the uploaded file name for display
+try {
+    // Connect to MySQL database using PDO
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Check if the uploads directory exists and is writable
-    if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0777, true); // Create the directory recursively if it doesn't exist
+    // Check if form was submitted
+    $selectedYear = isset($_POST['selectedYear']) ? (int)$_POST['selectedYear'] : 2024; // Default to 2024
+    $selectedConference = isset($_POST['selectedConference']) ? $_POST['selectedConference'] : 'West'; // Default to West
+
+    // Query to select players filtered by selected year and conference (East or West)
+    $sql = "SELECT * FROM all_star WHERE 1=1";
+    $params = [];
+    if ($selectedYear) {
+        $sql .= " AND season = :season";
+        $params[':season'] = $selectedYear;
+    }
+    if ($selectedConference && in_array($selectedConference, ['East', 'West'])) {
+        $sql .= " AND team LIKE :conference";
+        $params[':conference'] = "%$selectedConference%";
     }
 
-    if (move_uploaded_file($_FILES['file']['tmp_name'], $uploadFile)) {
-        // File uploaded successfully, now parse CSV and filter by selected year
-        if (($handle = fopen($uploadFile, 'r')) !== false) {
-            // Read the headers to determine column positions
-            $headers = fgetcsv($handle, 1000, ',');
-            
-            // Find the index of 'player' and 'season' in the headers array
-            $playerIndex = array_search('player', $headers);
-            $seasonIndex = array_search('season', $headers);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            while (($data = fgetcsv($handle, 1000, ',')) !== false) {
-                // Access the player and season values based on their column indices
-                $player = trim($data[$playerIndex]);
-                $season = (int)trim($data[$seasonIndex]);
-
-                // Filter by selected year if matches
-                if ($selectedYear && $season === $selectedYear) {
-                    $players[] = ['player' => $player, 'season' => $season];
-                }
-            }
-            fclose($handle);
-        }
-    } else {
-        echo 'Error uploading file. Ensure the uploads directory exists and is writable.';
-    }
+} catch (PDOException $e) {
+    echo 'Database connection failed: ' . $e->getMessage();
 }
 ?>
 
@@ -69,51 +63,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['file'])) {
 </style>
 
 <script>
-    function goBack() {
-        window.history.back();
-    }
-    
+    // Function to initialize form with selected values
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get selected values from localStorage if available
+        const selectedYear = localStorage.getItem('selectedYear');
+        const selectedConference = localStorage.getItem('selectedConference');
+
+        // Set selected values in the form if they exist
+        if (selectedYear) {
+            document.getElementById('yearDropdown').value = selectedYear;
+        }
+        if (selectedConference) {
+            document.getElementById('conferenceDropdown').value = selectedConference;
+        }
+    });
+
     // Function to submit the form when dropdown selection changes
     function submitForm() {
-        document.getElementById("yearForm").submit();
+        const selectedYear = document.getElementById('yearDropdown').value;
+        const selectedConference = document.getElementById('conferenceDropdown').value;
+
+        // Store selected values in localStorage
+        localStorage.setItem('selectedYear', selectedYear);
+        localStorage.setItem('selectedConference', selectedConference);
+
+        // Submit the form
+        document.getElementById("filterForm").submit();
     }
 </script>
 
-<!-- Upload Form -->
+<!-- Title  -->
+<h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">All Star Map</h1>
+
+<!-- Filter Form -->
 <div class="container" style="margin-top: 20px; width: 46%;">
-    <form id="uploadForm" method="post" enctype="multipart/form-data">
-        <h1 for="file">Upload your file</h1>
-        <br>
-        <div class="mb-3 d-flex align-items-center">
-            <input class="form-control me-2" type="file" name="file" id="file" accept=".csv" required>
-            <button type="submit" class="btn btn-dark" id="butt_upload" style="margin-left: 20px;">Upload</button>
+    <form id="filterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="row g-3 align-items-center">
+        <!-- Year Dropdown -->
+        <div class="col-auto">
+            <select id="yearDropdown" class="form-control" name="selectedYear" onchange="submitForm()">
+                <option value="" disabled>Select the year</option>
+                <?php
+                // Define the range of years
+                $startYear = 1951;
+                $endYear = 2024;
+
+                // Loop through the range of years and create options starting from the highest
+                for ($year = $endYear; $year >= $startYear; $year--) {
+                    $selected = ($year == $selectedYear) ? 'selected' : '';
+                    echo "<option value=\"$year\" $selected>$year</option>";
+                }
+                ?>
+            </select>
         </div>
-    </form>
-</div>
-
-<!-- Display uploaded file name if available -->
-<?php if ($uploadedFileName) : ?>
-    <div class="container" style="margin-top: 20px; width: 46%;">
-        <p>Uploaded File: <?php echo htmlspecialchars($uploadedFileName); ?></p>
-    </div>
-<?php endif; ?>
-
-<!-- Dropdown Tahun -->
-<div class="container" style="margin-top: 20px; width: 46%;">
-    <form id="yearForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-        <select id="yearDropdown" class="form-control" name="selectedYear" onchange="submitForm()">
-            <option value="" selected disabled>Select the year</option>
-            <?php
-            // Define the range of years
-            $startYear = 1951;
-            $endYear = 2024;
-
-            // Loop through the range of years and create options
-            for ($year = $startYear; $year <= $endYear; $year++) {
-                echo "<option value=\"$year\">$year</option>";
-            }
-            ?>
-        </select>
+        
+        <!-- Conference Dropdown -->
+        <div class="col-auto">
+            <select id="conferenceDropdown" class="form-control" name="selectedConference" onchange="submitForm()">
+                <option value="" disabled>Select the conference</option>
+                <option value="East" <?php if ($selectedConference == 'East') echo 'selected'; ?>>East</option>
+                <option value="West" <?php if ($selectedConference == 'West') echo 'selected'; ?>>West</option>
+            </select>
+        </div>
     </form>
 </div>
 
@@ -122,31 +132,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['file'])) {
     <?php
     // Define player positions
     $playerPositions = [
-        'p1' => ['left' => 775, 'top' => 135],
-        'p2' => ['left' => 605, 'top' => 195],
-        'p3' => ['left' => 775, 'top' => 258],
-        'p4' => ['left' => 605, 'top' => 320],
-        'p5' => ['left' => 775, 'top' => 380],
-        'p6' => ['left' => 995, 'top' => 135],
-        'p7' => ['left' => 1165, 'top' => 195],
-        'p8' => ['left' => 995, 'top' => 258],
-        'p9' => ['left' => 1165, 'top' => 320],
-        'p10' => ['left' => 995, 'top' => 380],
+        'p1' => ['left' => 375, 'top' => 135],
+        'p2' => ['left' => 205, 'top' => 195],
+        'p3' => ['left' => 375, 'top' => 258],
+        'p4' => ['left' => 205, 'top' => 320],
+        'p5' => ['left' => 375, 'top' => 380],
+        'p6' => ['left' => 595, 'top' => 135],
+        'p7' => ['left' => 765, 'top' => 195],
+        'p8' => ['left' => 595, 'top' => 258],
+        'p9' => ['left' => 765, 'top' => 320],
+        'p10' => ['left' => 595, 'top' => 380],
     ];
 
-    // Initialize $players array to avoid undefined variable error
-    $players = [];
-
-    // Iterate through $players array only if it's not empty
+    // Iterate through $players array
     if (!empty($players)) {
         $i = 1;
         foreach ($players as $player) {
-            if ($i > 10) break;
+            if ($i > 10) break; // Display only first 10 players
             $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
 
-            // Truncate the name to 12 characters and add ellipsis if it's longer
+            // Truncate the name to 16 characters and add ellipsis if it's longer
             $truncatedName = strlen($name) > 16 ? substr($name, 0, 16) . '..' : $name;
 
+            // Display player name at specified position
             $left = $playerPositions['p' . $i]['left'];
             $top = $playerPositions['p' . $i]['top'];
             echo "<p id='p$i' style='position:absolute; margin-left:{$left}px; margin-top:{$top}px; font-weight:bold;'>{$truncatedName}</p>";
@@ -157,7 +165,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['file'])) {
     }
     ?>
 </div>
-
 
 <!-- Gambar Lapangan -->
 <div class="image-container" style="margin-top: 40px;">
@@ -176,8 +183,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES['file'])) {
         <tbody>
             <?php
             // Print remaining players in a table
-            for ($j = 0; $j < count($players); $j++) {
-                $name = isset($players[$j]['player']) ? htmlspecialchars($players[$j]['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
+            foreach ($players as $player) {
+                $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
                 echo "<tr><td>{$name}</td></tr>";
             }
             ?>

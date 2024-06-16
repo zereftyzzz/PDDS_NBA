@@ -198,13 +198,14 @@ $ostatsCollection = $client->pdds_proyek->ostats;
 
 <body>
 
-<h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">NBA Data Modelling for Data Science Project</h1>
-
+<!-- Title  -->
+  <h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">NBA Data Modelling for Data Science Project</h1>
 <!-- Season Dropdown -->
   <div class="container" style="margin-top: 20px;justify-content: center; align-items: center;">
     <div class="row justify-content-center">
       <form method="get" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="row col-8">
-        <div class="col-md-5 mb-3">
+        
+        <div class="col-md-4 mb-3">
             <label for="season">Select Season:</label>
             <select id="season" name="season" class="form-control" onchange="checkFormValidity()">
                 <option value="">Select a season</option>
@@ -214,7 +215,7 @@ $ostatsCollection = $client->pdds_proyek->ostats;
             </select>
         </div>
 
-        <div class="col-md-5 mb-3">
+        <div class="col-md-4 mb-3">
             <label for="team">Select Team:</label>
             <select id="team" name="team" class="form-control" onchange="checkFormValidity()">
                 <option value="">Select a team</option>
@@ -241,6 +242,11 @@ $ostatsCollection = $client->pdds_proyek->ostats;
         <div class="col-md-2 mb-3" style="margin-top:32px;">
             <button type="submit" id="submitBtn" class="btn btn-dark" disabled>Submit</button>
         </div>
+
+        <div class="col" style="margin-top:32px;">
+            <a href="starmap.php" class="btn btn-dark">★</a>
+        </div>
+
       </form>
 
       <!-- <div class="col-2">
