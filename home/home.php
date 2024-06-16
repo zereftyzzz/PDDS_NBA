@@ -201,7 +201,7 @@ $ostatsCollection = $client->pdds_proyek->ostats;
 <h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">NBA Data Modelling for Data Science Project</h1>
 
 <!-- Season Dropdown -->
-  <div class="container" style="margin-top: 20px;margin-left:460px;">
+  <div class="container" style="margin-top: 20px;justify-content: center; align-items: center;">
     <div class="row justify-content-center">
       <form method="get" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="row col-8">
         <div class="col-md-5 mb-3">
