@@ -37,7 +37,8 @@ try {
     $stmt->execute($params);
     $players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-} catch (PDOException $e) {
+} 
+catch (PDOException $e) {
     echo 'Database connection failed: ' . $e->getMessage();
 }
 ?>
@@ -93,101 +94,106 @@ try {
 </script>
 
 <!-- Title  -->
-<h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">All Star Map</h1>
+    <h1 style="justify-content: center; align-items: center; display: flex; margin-top:30px;">All Star Map</h1>
 
 <!-- Filter Form -->
-<div class="container" style="margin-top: 20px; width: 46%;">
-    <form id="filterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="row g-3 align-items-center">
-        <!-- Year Dropdown -->
-        <div class="col-auto">
-            <select id="yearDropdown" class="form-control" name="selectedYear" onchange="submitForm()">
-                <option value="" disabled>Select the year</option>
-                <?php
-                // Define the range of years
-                $startYear = 1951;
-                $endYear = 2024;
-
-                // Loop through the range of years and create options starting from the highest
-                for ($year = $endYear; $year >= $startYear; $year--) {
-                    $selected = ($year == $selectedYear) ? 'selected' : '';
-                    echo "<option value=\"$year\" $selected>$year</option>";
-                }
-                ?>
-            </select>
-        </div>
+    <div class="container" style="margin-top: 20px; width: 46%;">
+        <form id="filterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" class="row g-3 align-items-center">
         
-        <!-- Conference Dropdown -->
-        <div class="col-auto">
-            <select id="conferenceDropdown" class="form-control" name="selectedConference" onchange="submitForm()">
-                <option value="" disabled>Select the conference</option>
-                <option value="East" <?php if ($selectedConference == 'East') echo 'selected'; ?>>East</option>
-                <option value="West" <?php if ($selectedConference == 'West') echo 'selected'; ?>>West</option>
-            </select>
-        </div>
-    </form>
-</div>
+        <!-- <div class="col-auto" >
+            <button class="btn btn-dark" onclick="history.back()">Back</button>
+        </div> -->
+    
+        <!-- Year Dropdown -->
+            <div class="col-auto">
+                <select id="yearDropdown" class="form-control" name="selectedYear" onchange="submitForm()">
+                    <option value="" disabled>Select the year</option>
+                    <?php
+                    // Define the range of years
+                    $startYear = 1951;
+                    $endYear = 2024;
+
+                    // Loop through the range of years and create options starting from the highest
+                    for ($year = $endYear; $year >= $startYear; $year--) {
+                        $selected = ($year == $selectedYear) ? 'selected' : '';
+                        echo "<option value=\"$year\" $selected>$year</option>";
+                    }
+                    ?>
+                </select>
+            </div>
+            
+            <!-- Conference Dropdown -->
+            <div class="col-auto">
+                <select id="conferenceDropdown" class="form-control" name="selectedConference" onchange="submitForm()">
+                    <option value="" disabled>Select the conference</option>
+                    <option value="East" <?php if ($selectedConference == 'East') echo 'selected'; ?>>East</option>
+                    <option value="West" <?php if ($selectedConference == 'West') echo 'selected'; ?>>West</option>
+                </select>
+            </div>
+        </form>
+    </div>
 
 <!-- Player -->
-<div class="container" style="margin-top: 20px; width: 100%;">
-    <?php
-    // Define player positions
-    $playerPositions = [
-        'p1' => ['left' => 375, 'top' => 135],
-        'p2' => ['left' => 205, 'top' => 195],
-        'p3' => ['left' => 375, 'top' => 258],
-        'p4' => ['left' => 205, 'top' => 320],
-        'p5' => ['left' => 375, 'top' => 380],
-        'p6' => ['left' => 595, 'top' => 135],
-        'p7' => ['left' => 765, 'top' => 195],
-        'p8' => ['left' => 595, 'top' => 258],
-        'p9' => ['left' => 765, 'top' => 320],
-        'p10' => ['left' => 595, 'top' => 380],
-    ];
+    <div class="container" style="margin-top: 20px; width: 100%;">
+        <?php
+        // Define player positions
+        $playerPositions = [
+            'p1' => ['left' => 375, 'top' => 135],
+            'p2' => ['left' => 205, 'top' => 195],
+            'p3' => ['left' => 375, 'top' => 258],
+            'p4' => ['left' => 205, 'top' => 320],
+            'p5' => ['left' => 375, 'top' => 380],
+            'p6' => ['left' => 595, 'top' => 135],
+            'p7' => ['left' => 765, 'top' => 195],
+            'p8' => ['left' => 595, 'top' => 258],
+            'p9' => ['left' => 765, 'top' => 320],
+            'p10' => ['left' => 595, 'top' => 380],
+        ];
 
-    // Iterate through $players array
-    if (!empty($players)) {
-        $i = 1;
-        foreach ($players as $player) {
-            if ($i > 10) break; // Display only first 10 players
-            $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
+        // Iterate through $players array
+        if (!empty($players)) {
+            $i = 1;
+            foreach ($players as $player) {
+                if ($i > 10) break; // Display only first 10 players
+                $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
 
-            // Truncate the name to 16 characters and add ellipsis if it's longer
-            $truncatedName = strlen($name) > 16 ? substr($name, 0, 16) . '..' : $name;
+                // Truncate the name to 16 characters and add ellipsis if it's longer
+                $truncatedName = strlen($name) > 16 ? substr($name, 0, 16) . '..' : $name;
 
-            // Display player name at specified position
-            $left = $playerPositions['p' . $i]['left'];
-            $top = $playerPositions['p' . $i]['top'];
-            echo "<p id='p$i' style='position:absolute; margin-left:{$left}px; margin-top:{$top}px; font-weight:bold;'>{$truncatedName}</p>";
-            $i++;
+                // Display player name at specified position
+                $left = $playerPositions['p' . $i]['left'];
+                $top = $playerPositions['p' . $i]['top'];
+                echo "<p id='p$i' style='position:absolute; margin-left:{$left}px; margin-top:{$top}px; font-weight:bold;'>{$truncatedName}</p>";
+                $i++;
+            }
+        } else {
+            echo "<p>No players to display.</p>";
         }
-    } else {
-        echo "<p>No players to display.</p>";
-    }
-    ?>
-</div>
+        ?>
+    </div>
 
 <!-- Gambar Lapangan -->
-<div class="image-container" style="margin-top: 40px;">
-    <img src="../assets/bg_home.png" class="centered-image" style="height: 500px">
-</div>
+    <div class="image-container" style="margin-top: 40px;">
+        <img src="../assets/bg_home.png" class="centered-image" style="height: 500px">
+    </div>
 
 <!-- Reserve -->
-<div class="container" style="margin-top: 20px; width: 46%;">
-    <h3 style="margin-bottom: 10px;">Reserve</h3>
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Player Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            // Print remaining players in a table
-            foreach ($players as $player) {
-                $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
-                echo "<tr><td>{$name}</td></tr>";
-            }
-            ?>
-        </tbody>
-    </table>
-</div>
+    <div class="container" style="margin-top: 20px; width: 46%;">
+        <h3 style="margin-bottom: 10px;">Reserve</h3>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                // Print remaining players in a table
+                foreach ($players as $player) {
+                    $name = isset($player['player']) ? htmlspecialchars($player['player'], ENT_QUOTES, 'UTF-8') : 'N/A';
+                    echo "<tr><td>{$name}</td></tr>";
+                }
+                ?>
+            </tbody>
+        </table>
+    </div>
