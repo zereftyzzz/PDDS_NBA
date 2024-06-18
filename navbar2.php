@@ -8,10 +8,12 @@
                 <a href="home/home.php" style="color: black;">Home</a>
             </div>
             <div class="col-2">
-                <a href="trade.php" style="color: black;">Trade</a>
+                <a href="trade_player.php" style="color: black;">Trade</a>
             </div>
             <div class="col-2">
                 <a href="allstar.php" style="color: black;">All Star</a>
             </div>
         </div>
     </div>
+
+    <br>
