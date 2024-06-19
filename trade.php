@@ -13,8 +13,6 @@ $averageTeamStats = [];
 $teamDetails = null;
 $year = isset($_GET['year']) ? intval($_GET['year']) : null;
 $selectedTeam = isset($_GET['team']) ? $_GET['team'] : null;
-$pos = isset($_GET['pos']) ? $_GET['pos'] : null;
-
 function safeSum($array, $key)
 {
     $sum = 0;
@@ -52,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
 
     if ($year) {
         // Calculate average player stats for the selected year and position
-        $selectedPlayerPosition = $playerData[0]['pos']; // Get position of selected player
-        $yearCursor = $playerCollection->find(['season' => $year, 'pos' => $selectedPlayerPosition]);
+        $selectedPlayerPosition = $playerData[0]; // Get position of selected player
+        $yearCursor = $playerCollection->find(['season' => $year]);
         $yearData = iterator_to_array($yearCursor);
 
 
@@ -287,7 +285,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
     <?php if ($teamDetails) : ?>
         <div class="team-details">
             <p><strong><?php echo htmlspecialchars($_GET['name']); ?></strong></p>
-            <p><strong>Position:</strong> <span><?php echo htmlspecialchars($playerData[0]['pos']); ?></span></p>
             <p><strong>Team Name:</strong> <span><?php echo htmlspecialchars($teamDetails['team']) . " (" . htmlspecialchars($teamDetails['abbreviation']) . ")"; ?></span></p>
         </div>
     <?php endif; ?>
@@ -305,30 +302,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
                 </thead>
                 <tbody>
 
+                
                     <!-- REBOUNDS -->
                     <tr>
-                        <td>Rebounds per Game</td>
-                        <td>
-                            <div style="margin-bottom: 10px;">
-                                <span style="float: left;">
-                                    <?php echo number_format($selectedPlayerStats['trb_per_game'], 2); ?>
-                                </span>
-                                <span style="float: right;">
-                                    <?php echo number_format($averagePlayerStats['trb_per_game'], 2); ?>
-                                </span>
-                                <div style="clear: both;"></div>
-                            </div>
-                            <div class="bar-container">
-                                <?php
-                                $totalRebounds = $selectedPlayerStats['trb_per_game'] + $averagePlayerStats['trb_per_game'];
-                                $selectedPlayerWidth = ($selectedPlayerStats['trb_per_game'] / $totalRebounds) * 100;
-                                $averagePlayerWidth = ($averagePlayerStats['trb_per_game'] / $totalRebounds) * 100;
-                                ?>
-                                <div class="bar higher" style="width: <?php echo $selectedPlayerWidth; ?>%; "></div>
-                                <div class="bar lower" style="width: <?php echo $averagePlayerWidth; ?>%;"></div>
-                            </div>
-                        </td>
-                    </tr>
+    <td>Rebounds per Game</td>
+    <td>
+        <div class="bar-container" style="position: relative;">
+            <?php
+            // Calculate total rebounds to determine maximum width of bars
+            $maxRebounds = max($selectedPlayerStats['trb_per_game'], $averagePlayerStats['trb_per_game']);
+            $selectedPlayerWidth = ($selectedPlayerStats['trb_per_game'] / $maxRebounds) * 100;
+            $averagePlayerWidth = ($averagePlayerStats['trb_per_game'] / $maxRebounds) * 100;
+            ?>
+            <div class="bar higher" style="width: <?php echo $selectedPlayerWidth; ?>%;"></div>
+            <div class="bar lower" style="width: <?php echo $averagePlayerWidth; ?>%;"></div>
+            
+            <!-- Display values outside the bars -->
+            <span style="position: absolute; top: 50%; left: <?php echo $selectedPlayerWidth; ?>%; transform: translate(-50%, -50%);"><?php echo number_format($selectedPlayerStats['trb_per_game'], 2); ?></span>
+            <span style="position: absolute; top: 50%; right: <?php echo (100 - $averagePlayerWidth); ?>%; transform: translate(50%, -50%);"><?php echo number_format($averagePlayerStats['trb_per_game'], 2); ?></span>
+        </div>
+    </td>
+</tr>
+
+
 
                     <!-- ASSISTS -->
                     <tr>
