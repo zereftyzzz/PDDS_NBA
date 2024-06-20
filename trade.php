@@ -10,9 +10,12 @@ $selectedPlayerStats = [];
 $averagePlayerStats = [];
 $selectedTeamStats = [];
 $averageTeamStats = [];
+$achievements = [];
+$bestPlayers = [];
 $teamDetails = null;
 $year = isset($_GET['year']) ? intval($_GET['year']) : null;
 $selectedTeam = isset($_GET['team']) ? $_GET['team'] : null;
+
 function safeSum($array, $key)
 {
     $sum = 0;
@@ -68,6 +71,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
             foreach ($yearStats as $key => $value) {
                 if ($key !== 'count') {
                     $averagePlayerStats[$key] = $value / $yearStats['count'];
+                }
+            }
+
+            // Find the max stats for each category
+            $maxStats = [
+                'trb_per_game' => max(array_column($yearData, 'trb_per_game')),
+                'ast_per_game' => max(array_column($yearData, 'ast_per_game')),
+                'stl_per_game' => max(array_column($yearData, 'stl_per_game')),
+                'blk_per_game' => max(array_column($yearData, 'blk_per_game')),
+                'pts_per_game' => max(array_column($yearData, 'pts_per_game'))
+            ];
+
+            // Initialize best players array
+            $bestPlayers = [
+                'trb_per_game' => '',
+                'ast_per_game' => '',
+                'stl_per_game' => '',
+                'blk_per_game' => '',
+                'pts_per_game' => ''
+            ];
+
+            // Find the player with the max stat for each category
+            foreach ($yearData as $player) {
+                foreach ($maxStats as $stat => $maxValue) {
+                    if ($player[$stat] == $maxValue) {
+                        $bestPlayers[$stat] = $player['player'];
+                    }
+                }
+            }
+
+            // Check if the selected player has any best stat
+            foreach ($selectedPlayerStats as $key => $value) {
+                if (isset($maxStats[$key]) && $value == $maxStats[$key]) {
+                    $achievements[] = "Best " . str_replace("_per_game", "", $key) . " per Game";
                 }
             }
         }
@@ -259,75 +296,87 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
 
 <body>
     <form id="search_form" method="GET" action="">
-        <label for="year">Year:</label>
-        <select id="year" name="year">
-            <option value="">Select Year</option>
-            <?php for ($yr = 1947; $yr <= 2024; $yr++) : ?>
-                <option value="<?php echo $yr; ?>" <?php if (isset($_GET['year']) && $_GET['year'] == $yr) echo 'selected'; ?>>
-                    <?php echo $yr; ?>
-                </option>
-            <?php endfor; ?>
-        </select>
+    <label for="year">Year:</label>
+    <select id="year" name="year">
+        <option value="">Select Year</option>
+        <?php for ($yr = 1947; $yr <= 2024; $yr++) : ?>
+            <option value="<?php echo $yr; ?>" <?php if (isset($_GET['year']) && $_GET['year'] == $yr) echo 'selected'; ?>>
+                <?php echo $yr; ?>
+            </option>
+        <?php endfor; ?>
+    </select>
 
+    <!-- PLAYER DROPDOWN -->
+    <label for="player_name">Player Name:</label>
+    <select id="player_name" name="name">
+        <option value="">Select a player...</option>
+        <?php
+        if ($year) {
+            // MongoDB query to fetch distinct player names for the selected year
+            $playerCursor = $playerCollection->find(['season' => $year])->toArray();
 
-        <!-- PLAYER DROPDOWN -->
-
-        <label for="player_name">Player Name:</label>
-        <select id="player_name" name="name">
-            <option value="">Select a player...</option>
-
-
-            <?php
-            // MongoDB connection and collection retrieval
-            $collection = $client->pdds_proyek->player;
-
-            // Query MongoDB to fetch distinct player names
-            $cursor = $collection->distinct('player');
-
-            // Iterate through the distinct player names
-            foreach ($cursor as $playerName) {
-                // Check if the name matches the query parameter
-                $selected = (isset($_GET['name']) && $_GET['name'] == $playerName) ? 'selected' : '';
-
-                // Output each option
-                echo '<option value="' . htmlspecialchars($playerName) . '" ' . $selected . '>' . htmlspecialchars($playerName) . '</option>';
+            foreach ($playerCursor as $playerData) {
+                $selected = (isset($_GET['name']) && $_GET['name'] == $playerData['player']) ? 'selected' : '';
+                echo '<option value="' . htmlspecialchars($playerData['player']) . '" ' . $selected . '>' . htmlspecialchars($playerData['player']) . '</option>';
             }
-            ?>
+        }
+        ?>
+    </select>
 
-        </select>
-
-        <!-- Include JavaScript for search functionality -->
-        <script>
-            // Add JavaScript for search functionality
-            $(document).ready(function() {
-                // Initialize select2 on the player_name element
-                $('#player_name').select2({
-                    placeholder: "Select a player...",
-                    allowClear: true,
-                    width: '100%'
-                });
+    <!-- Include JavaScript for search functionality -->
+    <script>
+        // Add JavaScript for search functionality
+        $(document).ready(function() {
+            // Initialize select2 on the player_name element
+            $('#player_name').select2({
+                placeholder: "Select a player...",
+                allowClear: true,
+                width: '100%'
             });
-        </script>
+        });
+    </script>
 
+    <!-- TEAM DROPDOWN -->
+    <label for="team">Select Team to Transfer:</label>
+    <select id="team" name="team">
+        <option value="">Select Team</option>
+        <?php
+        if ($year) {
+            // MongoDB query to fetch teams for the selected year
+            $teamCursor = $teamCollection->find(['season' => $year])->toArray();
 
-        <label for="team">Select Team to Transfer:</label>
-        <select id="team" name="team">
-            <option value="" <?php echo empty($selectedTeam) ? 'selected' : ''; ?>>Select Team</option>
-            <?php foreach ($teamCollection->find() as $team) : ?>
-                <option value="<?php echo htmlspecialchars($team['abbreviation']); ?>" <?php if ($selectedTeam === $team['abbreviation']) echo 'selected'; ?>>
-                    <?php echo htmlspecialchars($team['team']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button type="submit">Search</button>
-    </form>
+            foreach ($teamCursor as $teamData) {
+                $selected = ($selectedTeam === $teamData['abbreviation']) ? 'selected' : '';
+                echo '<option value="' . htmlspecialchars($teamData['abbreviation']) . '" ' . $selected . '>' . htmlspecialchars($teamData['team']) . '</option>';
+            }
+        }
+        ?>
+    </select>
+    <button type="submit">Search</button>
+</form>
+
 
     <?php if ($teamDetails) : ?>
-        <div class="team-details">
-            <p><strong><?php echo htmlspecialchars($_GET['name']); ?></strong></p>
-            <p><strong>Team Name:</strong> <span><?php echo htmlspecialchars($teamDetails['team']) . " (" . htmlspecialchars($teamDetails['abbreviation']) . ")"; ?></span></p>
-        </div>
+    <div class="team-details">
+        <p><strong><?php echo htmlspecialchars($_GET['name']); ?></strong></p>
+        <p><strong>Team Name:</strong> <span><?php echo htmlspecialchars($teamDetails['team']) . " (" . htmlspecialchars($teamDetails['abbreviation']) . ")"; ?></span></p>
+        <?php if (!empty($achievements)) : ?>
+            <p><strong>Achievements:</strong> <span><?php echo implode(", ", $achievements); ?></span></p>
+        <?php endif; ?>
+    </div>
     <?php endif; ?>
+
+<!-- 
+<?php if (!empty($bestPlayers)) : ?>
+    <div class="best-players">
+        <h3>Best Players by Stat</h3>
+        <ul>
+            <?php foreach ($bestPlayers as $stat => $player) : ?>
+                <li><strong><?php echo ucfirst(str_replace("_per_game", "", $stat)); ?>:</strong> <?php echo htmlspecialchars($player); ?> (<?php echo number_format($maxStats[$stat], 2); ?>)</li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+<?php endif; ?> -->
 
     <!-- PLAYER -->
     <div class="tables-container">
