@@ -10,6 +10,7 @@ $selectedPlayerStats = [];
 $averagePlayerStats = [];
 $selectedTeamStats = [];
 $averageTeamStats = [];
+$oldTeamStats = [];
 $achievements = [];
 $bestPlayers = [];
 $teamDetails = null;
@@ -31,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
 
     $playerCursor = $playerCollection->find(['player' => $playerName, 'season' => $year]);
     $playerData = iterator_to_array($playerCursor);
+    $teamDetails = $teamCollection->findOne(['abbreviation' => $playerData[0]['tm']]);
 
     if (!empty($playerData)) {
         $teamDetails = $teamCollection->findOne(['abbreviation' => $playerData[0]['tm']]);
@@ -130,6 +132,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
             }
         }
 
+        // OLD TEAM
+        // Retrieve stats for the player's old team from tstats collection
+        if (!empty($teamDetails)) {
+            $oldTeamStatsCursor = $teamCollection->find(['abbreviation' => $teamDetails['abbreviation'], 'season' => $year]);
+            $oldTeamStatsData = iterator_to_array($oldTeamStatsCursor);
+
+            if (!empty($oldTeamStatsData)) {
+                $oldTeamStats = [
+                    'trb_per_game' => safeSum($oldTeamStatsData, 'trb_per_game'),
+                    'ast_per_game' => safeSum($oldTeamStatsData, 'ast_per_game'),
+                    'stl_per_game' => safeSum($oldTeamStatsData, 'stl_per_game'),
+                    'blk_per_game' => safeSum($oldTeamStatsData, 'blk_per_game'),
+                    'pts_per_game' => safeSum($oldTeamStatsData, 'pts_per_game'),
+                    'count' => count($oldTeamStatsData)
+                ];
+
+                foreach ($oldTeamStats as $key => $value) {
+                    if ($key !== 'count') {
+                        $oldTeamStats[$key] = $value / $oldTeamStats['count'];
+                    }
+                }
+            }
+        }
+
+
+
         // Retrieve stats for the selected team from tstats collection
         if ($selectedTeam) {
             $selectedTeamStatsCursor = $teamCollection->find(['abbreviation' => $selectedTeam, 'season' => $year]);
@@ -152,6 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
                 }
             }
         }
+
+
     }
 }
 ?>
@@ -366,17 +396,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
     </div>
     <?php endif; ?>
 
-<!-- 
-<?php if (!empty($bestPlayers)) : ?>
-    <div class="best-players">
-        <h3>Best Players by Stat</h3>
-        <ul>
-            <?php foreach ($bestPlayers as $stat => $player) : ?>
-                <li><strong><?php echo ucfirst(str_replace("_per_game", "", $stat)); ?>:</strong> <?php echo htmlspecialchars($player); ?> (<?php echo number_format($maxStats[$stat], 2); ?>)</li>
-            <?php endforeach; ?>
-        </ul>
-    </div>
-<?php endif; ?> -->
+
+    <?php if (!empty($bestPlayers)) : ?>
+        <div class="team-details">
+            <p><strong>Best Players by Stat on <?php echo $year; ?></strong></p>
+            <ul>
+                <?php foreach ($bestPlayers as $stat => $player) : ?>
+                    <li><strong><?php echo ucfirst(str_replace("_per_game", "", $stat)); ?>:</strong> <?php echo htmlspecialchars($player); ?> (<?php echo number_format($maxStats[$stat], 2); ?>)</li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
 
     <!-- PLAYER -->
     <div class="tables-container">
@@ -1014,6 +1044,331 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['name']) && !empty($_GET[
                 </tbody>
             </table>
         <?php endif; ?>
+
+
+        <br>
+
+        <!-- OLD TEAM -->
+         <!-- TEAM -->
+        <?php if (!empty($selectedTeamStats) && !empty($oldTeamStats)) : ?>
+            <table>
+                <caption>Comparison with Current Player's Team Stats in <?php echo $year; ?></caption>
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Statistic</th>
+                        <th style="width: 75%;"><?php echo isset($_GET['team']) ? htmlspecialchars($_GET['team']) . "'s Stat  vs  " . htmlspecialchars($teamDetails['abbreviation']) . " 's Stat" : "Team's Value  vs  Average Team's Stat"; ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                <!-- REBOUNDS OLD TEAM -->
+                <tr>
+                        <td style="height: 80px;">Rebounds per Game</td>
+                        <td>
+                            <div style="position: relative; top:10px">
+                                <?php
+                                $maxRebounds = max($selectedTeamStats['trb_per_game'], $oldTeamStats['trb_per_game']);
+                                $selectedTeamWidth = ($selectedTeamStats['trb_per_game'] / $maxRebounds) * 100;
+                                $oldTeamWidth = ($oldTeamStats['trb_per_game'] / $maxRebounds) * 100;
+
+                                // If the selected is higher echo this part (HIJAU)
+                                if ($selectedTeamStats['trb_per_game'] > $oldTeamStats['trb_per_game']) {
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #4caf50; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['trb_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($oldTeamWidth - 5) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['trb_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+
+                                // If the average is higher echo this part
+                                } else {
+
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #dc3545; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['trb_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($selectedTeamWidth - 5) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['trb_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+                                }
+                                ?>
+
+                            </div>
+                        </td>
+                    </tr>
+
+
+                    <!-- ASSISTS OLD TEAM -->
+                    <tr>
+                        <td style="height: 80px;">Assists per Game</td>
+                        <td>
+                            <div style="position: relative; top:10px">
+                                <?php
+                                $maxRebounds = max($selectedTeamStats['ast_per_game'], $oldTeamStats['ast_per_game']);
+                                $selectedTeamWidth = ($selectedTeamStats['ast_per_game'] / $maxRebounds) * 100;
+                                $oldTeamWidth = ($oldTeamStats['ast_per_game'] / $maxRebounds) * 100;
+
+                                // If the selected is higher echo this part (HIJAU)
+                                if ($selectedTeamStats['ast_per_game'] > $oldTeamStats['ast_per_game']) {
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #4caf50; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['ast_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($oldTeamWidth - 5) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['ast_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+
+                                // If the average is higher echo this part
+                                } else {
+
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #dc3545; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['ast_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($selectedTeamWidth - 5) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['ast_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+                                }
+                                ?>
+
+                            </div>
+                        </td>
+                    </tr>
+
+
+                    <!-- STEALS OLD TEAM -->
+                    <tr>
+                        <td style="height: 80px;">Assists per Game</td>
+                        <td>
+                            <div style="position: relative; top:10px">
+                                <?php
+                                $maxRebounds = max($selectedTeamStats['stl_per_game'], $oldTeamStats['stl_per_game']);
+                                $selectedTeamWidth = ($selectedTeamStats['stl_per_game'] / $maxRebounds) * 100;
+                                $oldTeamWidth = ($oldTeamStats['stl_per_game'] / $maxRebounds) * 100;
+
+                                // If the selected is higher echo this part (HIJAU)
+                                if ($selectedTeamStats['stl_per_game'] > $oldTeamStats['stl_per_game']) {
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #4caf50; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['stl_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($oldTeamWidth - 4) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['stl_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+
+                                // If the average is higher echo this part
+                                } else {
+
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #dc3545; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['stl_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($selectedTeamWidth - 4) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['stl_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+                                }
+                                ?>
+
+                            </div>
+                        </td>
+                    </tr>
+
+
+                    <!-- BLOCKS OLD TEAM -->
+                    <tr>
+                        <td style="height: 80px;">Blocks per Game</td>
+                        <td>
+                            <div style="position: relative; top:10px">
+                                <?php
+                                $maxRebounds = max($selectedTeamStats['blk_per_game'], $oldTeamStats['blk_per_game']);
+                                $selectedTeamWidth = ($selectedTeamStats['blk_per_game'] / $maxRebounds) * 100;
+                                $oldTeamWidth = ($oldTeamStats['blk_per_game'] / $maxRebounds) * 100;
+
+                                // If the selected is higher echo this part (HIJAU)
+                                if ($selectedTeamStats['blk_per_game'] > $oldTeamStats['blk_per_game']) {
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #4caf50; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['blk_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($oldTeamWidth - 4) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['blk_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+
+                                // If the average is higher echo this part
+                                } else {
+
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #dc3545; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['blk_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($selectedTeamWidth - 4) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['blk_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+                                }
+                                ?>
+
+                            </div>
+                        </td>
+                    </tr>
+
+
+                    <!-- POINTS OLD TEAM -->
+                    <tr>
+                        <td style="height: 80px;">Points per Game</td>
+                        <td>
+                            <div style="position: relative; top:10px">
+                                <?php
+                                $maxRebounds = max($selectedTeamStats['pts_per_game'], $oldTeamStats['pts_per_game']);
+                                $selectedTeamWidth = ($selectedTeamStats['pts_per_game'] / $maxRebounds) * 100;
+                                $oldTeamWidth = ($oldTeamStats['pts_per_game'] / $maxRebounds) * 100;
+
+                                // If the selected is higher echo this part (HIJAU)
+                                if ($selectedTeamStats['pts_per_game'] > $oldTeamStats['pts_per_game']) {
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #4caf50; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['pts_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($oldTeamWidth - 6) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['pts_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+
+                                // If the average is higher echo this part
+                                } else {
+
+                                    echo "
+                                    <div style='display: flex; align-items: center; position: relative;'>
+                                        <div class='bar-container' style='position: relative; height: 20px; width: 100%; background-color: #f1f1f1; overflow: hidden; margin-right: 10px;'>
+                                            <div class='bar lower' style='width: {$oldTeamWidth}%; height: 100%; background-color: #2196F3; position: absolute; top: 0; left: 0;'></div>
+                                            <div class='bar higher' style='width: {$selectedTeamWidth}%; height: 100%; background-color: #dc3545; position: absolute; top: 0; left: 0;'></div>
+                                        </div>
+
+                                        <span style='color: black;'>
+                                            " . number_format($oldTeamStats['pts_per_game'], 2) . "
+                                        </span>
+                                    </div>
+
+                                    <div style='position: absolute; top: -25px; left: " . ($selectedTeamWidth - 6) . "%;'>
+                                        <span style='color: black;'>
+                                            " . number_format($selectedTeamStats['pts_per_game'], 2) . "
+                                        </span>
+                                    </div>
+                                    ";
+                                }
+                                ?>
+
+                            </div>
+                        </td>
+                    </tr>
+
+
+                </tbody>
+            </table>
+        <?php endif; ?>
+
+        <br><br>
+
+
+
     </div>
     </div>
 </body>
